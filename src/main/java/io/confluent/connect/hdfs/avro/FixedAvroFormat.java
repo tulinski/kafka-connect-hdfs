@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.connect.hdfs.parquet;
+package io.confluent.connect.hdfs.avro;
 
 import org.apache.hadoop.fs.Path;
 
@@ -24,27 +24,29 @@ import io.confluent.connect.storage.format.RecordWriterProvider;
 import io.confluent.connect.storage.format.SchemaFileReader;
 import io.confluent.connect.storage.hive.HiveFactory;
 
-public class ParquetFormat
+public class FixedAvroFormat
     implements io.confluent.connect.storage.format.Format<HdfsSinkConnectorConfig, Path> {
+  private final HdfsStorage storage;
   private final AvroData avroData;
 
   // DO NOT change this signature, it is required for instantiation via reflection
-  public ParquetFormat(HdfsStorage storage) {
+  public FixedAvroFormat(HdfsStorage storage) {
+    this.storage = storage;
     this.avroData = new AvroData(storage.conf().avroDataConfig());
   }
 
   @Override
   public RecordWriterProvider<HdfsSinkConnectorConfig> getRecordWriterProvider() {
-    return new ParquetRecordWriterProvider(avroData);
+    return new AvroRecordWriterProvider(storage, avroData);
   }
 
   @Override
   public SchemaFileReader<HdfsSinkConnectorConfig, Path> getSchemaFileReader() {
-    return new ParquetFileReader(avroData);
+    return new AvroFileReader(avroData);
   }
 
   @Override
   public HiveFactory getHiveFactory() {
-    return new ParquetHiveFactory();
+    return new AvroHiveFactory(avroData);
   }
 }

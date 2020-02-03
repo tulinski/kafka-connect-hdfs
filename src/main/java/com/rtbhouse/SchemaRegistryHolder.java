@@ -11,6 +11,7 @@ import com.rtbhouse.utils.avro.registry.providers.ClasspathLatestSchemaIdsProvid
 import com.rtbhouse.utils.avro.registry.providers.SchemaClasspathProvider;
 import com.rtbhouse.utils.avro.registry.providers.SchemaMinioProvider;
 
+//code taken from rtb-kafka-hdfs-writer
 final class SchemaRegistryHolder {
     private static final String COM_RTBHOUSE_DOMAIN = "com.rtbhouse.domain";
     private static final String ENABLE_SCHEMA_REGISTRY_PROPERTY = "schema.registry.enable";

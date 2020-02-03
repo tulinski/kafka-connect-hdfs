@@ -69,7 +69,8 @@ public class AvroValueConverter implements Converter {
     public SchemaAndValue toConnectData(String topic, byte[] value) {
         try {
             GenericContainer deserialized = rtbAvroSerde.deserialize(value);
-            Integer version = 1;
+            //TODO: not sure it is a proper usage of connect version
+            Integer version = SchemaHelper.getSchemaId(deserialized);
 
             if (deserialized instanceof IndexedRecord) {
                 SchemaAndValue schemaAndValue = avroData.toConnectData(deserialized.getSchema(), deserialized, version);

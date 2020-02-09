@@ -2,19 +2,26 @@ package com.rtbhouse;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.util.HashMap;
+import java.io.File;
+import java.net.URL;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.apache.avro.generic.GenericContainer;
 import org.apache.avro.generic.IndexedRecord;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.errors.DataException;
+import org.apache.kafka.connect.runtime.isolation.PluginClassLoader;
 import org.apache.kafka.connect.storage.Converter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
+import com.rtbhouse.utils.avro.FastSerdeCache;
 import com.rtbhouse.utils.avro.events.AvroEventSerdeSupport;
 import com.rtbhouse.utils.avro.registry.SchemaRegistry;
 
@@ -23,6 +30,8 @@ import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.serializers.NonRecordContainer;
 
 public class AvroValueConverter implements Converter {
+
+    private static final Logger logger = LoggerFactory.getLogger(AvroValueConverter.class);
 
     private boolean isKey;
     private AvroData avroData;
@@ -41,6 +50,7 @@ public class AvroValueConverter implements Converter {
     }
 
     private AvroEventSerdeSupport createAvroSerde(Map<String, ?> configs) {
+        setupAvroFastserde();
 
         // hardcoded properties because we don't want to keep credentials in kafka
         Properties properties = new Properties();
@@ -54,6 +64,27 @@ public class AvroValueConverter implements Converter {
 
         SchemaRegistry schemaRegistry = SchemaRegistryHolder.provide(properties);
         return new AvroEventSerdeSupport(schemaRegistry);
+    }
+
+    private void setupAvroFastserde() {
+        ClassLoader classLoader = this.getClass().getClassLoader();
+        if (classLoader instanceof PluginClassLoader) {
+            PluginClassLoader pluginClassLoader = (PluginClassLoader) classLoader;
+            String fastserdeClasspath = Arrays.stream(pluginClassLoader.getURLs())
+                    .map(URL::getPath)
+                    .collect(Collectors.joining(System.getProperty("path.separator")));
+            System.setProperty(FastSerdeCache.CLASSPATH, fastserdeClasspath);
+            logger.info("[{}] system property has been set to [{}]", FastSerdeCache.CLASSPATH, fastserdeClasspath);
+        }
+    }
+
+    private String stripJarFilename(String path) {
+        File file = new File(path);
+        if (StringUtils.endsWithIgnoreCase(file.getName(),".jar")) {
+            return file.getParent();
+        } else {
+            return path;
+        }
     }
 
     @Override

@@ -15,11 +15,11 @@
 
 package io.confluent.connect.hdfs.avro;
 
-import io.confluent.connect.hdfs.storage.HdfsStorage;
+import java.io.IOException;
 import java.io.OutputStream;
+
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileWriter;
-import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.errors.DataException;
@@ -27,10 +27,11 @@ import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import com.rtbhouse.utils.avro.FastGenericDatumWriter;
 
 import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.hdfs.HdfsSinkConnectorConfig;
+import io.confluent.connect.hdfs.storage.HdfsStorage;
 import io.confluent.kafka.serializers.NonRecordContainer;
 
 public class AvroRecordWriterProvider
@@ -56,7 +57,7 @@ public class AvroRecordWriterProvider
       final String filename
   ) {
     return new io.confluent.connect.storage.format.RecordWriter() {
-      final DataFileWriter<Object> writer = new DataFileWriter<>(new GenericDatumWriter<>());
+      DataFileWriter<Object> writer = null;
       Schema schema = null;
 
       @Override
@@ -67,6 +68,7 @@ public class AvroRecordWriterProvider
             log.info("Opening record writer for: {}", filename);
             final OutputStream out = storage.create(filename, true);
             org.apache.avro.Schema avroSchema = avroData.fromConnectSchema(schema);
+            writer = new DataFileWriter<>(new FastGenericDatumWriter<>(avroSchema));
             writer.setCodec(CodecFactory.fromString(conf.getAvroCodec()));
             writer.create(avroSchema, out);
           } catch (IOException e) {

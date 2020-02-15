@@ -1,11 +1,13 @@
 package com.rtbhouse;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.rtbhouse.utils.avro.events.AvroEventSerdeSupport.AvroSerdeType.FAST;
 
 import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -23,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import com.rtbhouse.utils.avro.FastSerdeCache;
 import com.rtbhouse.utils.avro.events.AvroEventSerdeSupport;
+import com.rtbhouse.utils.avro.events.AvroEventSerdeSupport.AvroSerdeType;
 import com.rtbhouse.utils.avro.registry.SchemaRegistry;
 
 import io.confluent.connect.avro.AvroData;
@@ -63,7 +66,16 @@ public class AvroValueConverter implements Converter {
         properties.put("minio.endpoint", "http://minio.creativecdn.net:9000");
 
         SchemaRegistry schemaRegistry = SchemaRegistryHolder.provide(properties);
-        return new AvroEventSerdeSupport(schemaRegistry);
+
+
+        AvroSerdeType avroSerdeType = Optional.ofNullable(configs.get("avro.serde.type"))
+                .map(Object::toString)
+                .map(String::toUpperCase)
+                .map(AvroSerdeType::valueOf)
+                .orElse(FAST);
+        logger.info("AvroSerdeType: [{}]", avroSerdeType);
+
+        return new AvroEventSerdeSupport(schemaRegistry, avroSerdeType);
     }
 
     private void setupAvroFastserde() {
